@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: Peering Test Stack
+Description: MedEquipStack
 
 Parameters:
   DBPassword:
