@@ -201,7 +201,7 @@ Resources:
       ImageId: ami-0953476d60561c955
       SubnetId: !Ref PublicSubnetPubVPC
       SecurityGroupIds:
-        - !Ref WebServerSecurityGroup
+        - !Ref CustomerServiceSecurityGroup
       KeyName: vockey
 
   BastionInstance:
@@ -211,13 +211,16 @@ Resources:
       ImageId: ami-0fa71268a899c2733
       SubnetId: !Ref PublicSubnetPubVPC
       SecurityGroupIds:
-        - !Ref WebServerSecurityGroup
+        - !Ref BastionSecurityGroup
       KeyName: vockey
 
 Outputs:
-  WebServerPublicIp:
+  CustomerServicePublicIp:
     Description: Public IP address of the web server instance
-    Value: !GetAtt WebServerInstance.PublicIp
+    Value: !GetAtt CustomerServiceInstance.PublicIp
+  BastionPublicIp:
+    Description: Public IP address of the web server instance
+    Value: !GetAtt BastionInstance.PublicIp
   RDSEndpoint:
     Value: !GetAtt RDSInstance.Endpoint.Address
   VpcPeeringConnectionId:
