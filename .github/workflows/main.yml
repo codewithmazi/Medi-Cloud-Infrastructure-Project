@@ -24,8 +24,8 @@ jobs:
         - name: Configure Database Credentials
           uses: aws-actions/aws-cloudformation-github-deploy@v1
           with: 
-            name: MedEquipStack
-            template: MedEquipStack.yaml
+            name: MediEquipStack
+            template: MediEquipStack.yaml
             parameter-overrides: "DBPassword=${{ secrets.DB_PASSWORD }}"
         - name: Deploy CloudFormation Stack
           run:  |
