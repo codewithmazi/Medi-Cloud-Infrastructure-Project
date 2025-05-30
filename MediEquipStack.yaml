@@ -1,0 +1,195 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Peering Test Stack
+
+Parameters:
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Description: The database admin account password
+
+Resources:
+  PubVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: PubVPC
+  #subnet 
+  PublicSubnetPubVPC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PubVPC
+      CidrBlock: 10.0.1.0/24
+      MapPublicIpOnLaunch: true
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      Tags:
+        - Key: Name
+          Value: Public-Subnet-PubVPC
+  #Internet
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref PubVPC
+      InternetGatewayId: !Ref InternetGateway
+  #route
+  PublicRouteTablePubVPC:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PubVPC
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTablePubVPC
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PubPeeringRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCPeering
+    Properties:
+      RouteTableId: !Ref PublicRouteTablePubVPC
+      DestinationCidrBlock: 192.168.0.0/16
+      VpcPeeringConnectionId: !Ref VPCPeering
+  #associate
+  PublicRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetPubVPC
+      RouteTableId: !Ref PublicRouteTablePubVPC
+  PriVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: PriVPC
+  #subnet 
+  PrivateSubnetPriVPC:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PriVPC
+      CidrBlock: 192.168.1.0/24
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select
+        - 0
+        - !GetAZs ''
+      Tags:
+        - Key: Name
+          Value: Private-Subnet-PriVPC
+  PrivateSubnetPriVPC2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref PriVPC
+      CidrBlock: 192.168.2.0/24
+      MapPublicIpOnLaunch: false
+      AvailabilityZone: !Select
+        - 2
+        - !GetAZs ''
+      Tags:
+        - Key: Name
+          Value: Private-Subnet-PriVPC
+  #privateroute
+  PrivateRouteTablePriVPC:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref PriVPC
+  PriPeeringRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCPeering
+    Properties:
+      RouteTableId: !Ref PrivateRouteTablePriVPC
+      DestinationCidrBlock: 10.0.0.0/16
+      VpcPeeringConnectionId: !Ref VPCPeering
+  #associate
+  PrivateRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetPriVPC
+      RouteTableId: !Ref PrivateRouteTablePriVPC
+  PrivateRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetPriVPC2
+      RouteTableId: !Ref PrivateRouteTablePriVPC
+  # VPC Peering
+  VPCPeering:
+    Type: AWS::EC2::VPCPeeringConnection
+    Properties:
+      VpcId: !Ref PubVPC
+      PeerVpcId: !Ref PriVPC
+      Tags:
+        - Key: Name
+          Value: MyVPC-Peer
+  DBSG:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Private Subnet Group
+      SubnetIds:
+        - !Ref PrivateSubnetPriVPC
+        - !Ref PrivateSubnetPriVPC2
+
+  RDSSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS Security Group
+      VpcId: !Ref PriVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 10.0.1.0/24
+
+  RDSInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      AllocatedStorage: 20
+      DBInstanceClass: db.t3.micro
+      Engine: MySQL
+      MasterUsername: admin
+      MasterUserPassword: !Ref DBPassword
+      DBSubnetGroupName: !Ref DBSG
+      VPCSecurityGroups:
+        - !GetAtt RDSSG.GroupId
+  #security
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow HTTP and SSH
+      VpcId: !Ref PubVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+  #EC2
+  WebServerInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-0953476d60561c955
+      SubnetId: !Ref PublicSubnetPubVPC
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      KeyName: vockey
+
+Outputs:
+  WebServerPublicIp:
+    Description: Public IP address of the web server instance
+    Value: !GetAtt WebServerInstance.PublicIp
+  RDSEndpoint:
+    Value: !GetAtt RDSInstance.Endpoint.Address
+  VpcPeeringConnectionId:
+    Value: !Ref VPCPeering
