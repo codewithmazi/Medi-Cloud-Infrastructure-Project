@@ -160,7 +160,7 @@ Resources:
       VPCSecurityGroups:
         - !GetAtt RDSSG.GroupId
   #security
-  WebServerSecurityGroup:
+  CustomerServiceSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow HTTP and SSH
@@ -174,12 +174,41 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
+
+  BastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow RDP, HTTP and SSH
+      VpcId: !Ref PubVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 3389
+          ToPort: 3389
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
   #EC2
-  WebServerInstance:
+  CustomerServiceInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.micro
       ImageId: ami-0953476d60561c955
+      SubnetId: !Ref PublicSubnetPubVPC
+      SecurityGroupIds:
+        - !Ref WebServerSecurityGroup
+      KeyName: vockey
+
+  BastionInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t3.micro
+      ImageId: ami-0fa71268a899c2733
       SubnetId: !Ref PublicSubnetPubVPC
       SecurityGroupIds:
         - !Ref WebServerSecurityGroup
