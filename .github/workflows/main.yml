@@ -21,6 +21,10 @@ jobs:
         - name: List Files
           run: ls -R
           working-directory: ${{ github.workspace }}
+        - name: Configure Database Credentials
+          uses: aws-actions/aws-cloudformation-github-deploy@v1
+          with: 
+            parameter-overrides: "DBPassword=${{ secrets.DB_PASSWORD }}"
         - name: Deploy CloudFormation Stack
           run:  |
             aws cloudformation deploy --stack-name TestStack --template-file MediEquipStack.yaml --capabilities CAPABILITY_NAMED_IAM
