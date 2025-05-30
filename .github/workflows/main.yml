@@ -23,4 +23,4 @@ jobs:
           working-directory: ${{ github.workspace }}
         - name: Deploy CloudFormation Stack
           run:  |
-            aws cloudformation deploy --stack-name TestStack --template-file 404AZSTACK22.yaml --capabilities CAPABILITY_NAMED_IAM
+            aws cloudformation deploy --stack-name TestStack --template-file MediEquipStack.yaml --capabilities CAPABILITY_NAMED_IAM
