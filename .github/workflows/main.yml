@@ -27,6 +27,3 @@ jobs:
             name: MediEquipStack
             template: MediEquipStack.yaml
             parameter-overrides: "DBPassword=${{ secrets.DB_PASSWORD }}"
-        - name: Deploy CloudFormation Stack
-          run:  |
-            aws cloudformation deploy --stack-name TestStack --template-file MediEquipStack.yaml --capabilities CAPABILITY_NAMED_IAM
