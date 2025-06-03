@@ -27,3 +27,14 @@ jobs:
             name: MediEquipStack
             template: MediEquipStack.yaml
             parameter-overrides: "DBPassword=${{ secrets.DB_PASSWORD }}"
+        - name: Deploy Web Server Stack
+          run: |
+            aws cloudformation deploy \
+              --stack-name Webserver-asg \
+              --template-file Webserver-asg.yaml \
+              --capabilities CAPABILITY_NAMED_IAM \
+              --parameter-overrides \
+              VpcId=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs[?OutputKey=='VpcId'].OutputValue" --output text) \
+              SubnetIds=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs[?OutputKey=='PublicSubnetPubVPC' || OutputKey=='PublicSubnetPubVPC2' || OutputKey=='PublicSubnetPubVPC3'].OutputValue" --output text) \
+              RDSEndpoint=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs[?OutputKey=='RDSEndpoint' ].OutputValue" -- output text)
+          working-directory: ${{ github.workspace }}
