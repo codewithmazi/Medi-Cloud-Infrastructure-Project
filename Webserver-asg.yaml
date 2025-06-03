@@ -44,7 +44,9 @@ Resources:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier:
-        - !Ref SubnetIds
+        - PublicSubnetPubVPC
+        - PublicSubnetPubVPC2
+        - PublicSubnetPubVPC3
       LaunchConfigurationName: !Ref myLaunchTemplate
       MaxSize: '3'
       MinSize: '1'
