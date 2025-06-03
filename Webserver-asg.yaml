@@ -5,9 +5,15 @@ Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: The public VPC Id
-  SubnetIds: 
-    Type: List<AWS::EC2::Subnet::Id>
-    Description: The public VPC Id
+  PublicSubnetPubVPC: 
+    Type: String
+    Description:  public subnet 1
+  PublicSubnetPubVPC2: 
+    Type: String
+    Description:  public subnet 2
+  PublicSubnetPubVPC3: 
+    Type: String
+    Description:  public subnet 3
 
 
 Resources:

@@ -35,6 +35,8 @@ jobs:
               --capabilities CAPABILITY_NAMED_IAM \
               --parameter-overrides \
               VpcId=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs[?OutputKey=='VpcId'].OutputValue" --output text) \
-              SubnetIds=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "join(',', Stacks[0].Outputs[?OutputKey=='PublicSubnetPubVPC' || OutputKey=='PublicSubnetPubVPC2' || OutputKey=='PublicSubnetPubVPC3'].OutputValue)" --output text) \
+              PublicSubnetPubVPC=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs [?OutputKey=='PublicSubnetPubVPC'].OutputValue" --output text) \
+              PublicSubnetPubVPC2=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs [?OutputKey=='PublicSubnetPubVPC2'].OutputValue" --output text) \
+              PublicSubnetPubVPC3=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs [?OutputKey=='PublicSubnetPubVPC3'].OutputValue" --output text) \
               RDSEndpoint=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs[?OutputKey=='RDSEndpoint' ].OutputValue" -- output text)
           working-directory: ${{ github.workspace }}
