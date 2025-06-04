@@ -43,6 +43,13 @@ Resources:
     Properties:
       ImageId: ami-0953476d60561c955
       InstanceType: t2.micro
+      UserData: !Base64 |
+          #!/bin/bash
+          yum update -y
+          yum install -y httpd php
+          systemctl start httpd
+          systemctl enable httpd
+          echo "<?php phpinfo(); ?>" > /var/www/html/index.php
       SecurityGroups:
         - !Ref CustomerServiceSecurityGroup
 
