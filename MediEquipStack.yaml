@@ -8,6 +8,7 @@ Parameters:
     Description: The database admin account password
 
 Resources:
+  #PUBLIC VPC
   PubVPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -17,7 +18,8 @@ Resources:
       Tags:
         - Key: Name
           Value: PubVPC
-  #subnet 
+
+  #PUBLIC SUBNETS
   PublicSubnetPubVPC:
     Type: AWS::EC2::Subnet
     Properties:
@@ -41,7 +43,7 @@ Resources:
         - !GetAZs ''
       Tags:
         - Key: Name
-          Value: Public-Subnet-PubVPC
+          Value: Public-Subnet-PubVPC2
   PublicSubnetPubVPC3:
     Type: AWS::EC2::Subnet
     Properties:
@@ -53,8 +55,9 @@ Resources:
         - !GetAZs ''
       Tags:
         - Key: Name
-          Value: Public-Subnet-PubVPC
-  #Internet
+          Value: Public-Subnet-PubVPC3
+
+  #INTERNET
   InternetGateway:
     Type: AWS::EC2::InternetGateway
   AttachGateway:
@@ -62,7 +65,8 @@ Resources:
     Properties:
       VpcId: !Ref PubVPC
       InternetGatewayId: !Ref InternetGateway
-  #route
+
+  #PUBLIC ROUTES
   PublicRouteTablePubVPC:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -81,12 +85,25 @@ Resources:
       RouteTableId: !Ref PublicRouteTablePubVPC
       DestinationCidrBlock: 192.168.0.0/16
       VpcPeeringConnectionId: !Ref VPCPeering
-  #associate
+
+  #PUBLIC ROUTE ASSOCIATIONS
   PublicRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref PublicSubnetPubVPC
       RouteTableId: !Ref PublicRouteTablePubVPC
+  PublicRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetPubVPC2
+      RouteTableId: !Ref PublicRouteTablePubVPC
+  PublicRouteTableAssociation3:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetPubVPC3
+      RouteTableId: !Ref PublicRouteTablePubVPC
+
+  #PRIVATE VPC
   PriVPC:
     Type: AWS::EC2::VPC
     Properties:
@@ -96,7 +113,8 @@ Resources:
       Tags:
         - Key: Name
           Value: PriVPC
-  #subnet 
+
+  #PRIVATE SUBNETS
   PrivateSubnetPriVPC:
     Type: AWS::EC2::Subnet
     Properties:
@@ -120,8 +138,9 @@ Resources:
         - !GetAZs ''
       Tags:
         - Key: Name
-          Value: Private-Subnet-PriVPC
-  #privateroute
+          Value: Private-Subnet-PriVPC2
+
+  #PRIVATE ROUTES
   PrivateRouteTablePriVPC:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -133,7 +152,8 @@ Resources:
       RouteTableId: !Ref PrivateRouteTablePriVPC
       DestinationCidrBlock: 10.0.0.0/16
       VpcPeeringConnectionId: !Ref VPCPeering
-  #associate
+
+  #PRIVATE ROUTE ASSOCIATIONS
   PrivateRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -144,7 +164,8 @@ Resources:
     Properties:
       SubnetId: !Ref PrivateSubnetPriVPC2
       RouteTableId: !Ref PrivateRouteTablePriVPC
-  # VPC Peering
+
+  # VPC PEERING
   VPCPeering:
     Type: AWS::EC2::VPCPeeringConnection
     Properties:
@@ -153,6 +174,35 @@ Resources:
       Tags:
         - Key: Name
           Value: MyVPC-Peer
+
+  #FILE SERVER [S3]
+  FileServerBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: medequip-501-file-server
+
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+     Bucket: !Ref FileServerBucket
+     PolicyDocument:
+      Version: "2012-10-17"
+      Statement:
+        - Sid: AllowListing
+          Effect: Allow
+          Principal: "*"
+          Action:
+            - s3:ListBucket
+          Resource: !GetAtt FileServerBucket.Arn
+
+        - Sid: AllowReadAccess
+          Effect: Allow
+          Principal: "*"
+          Action:
+            - s3:GetObject
+          Resource: !Sub "${FileServerBucket.Arn}/*"
+
+  #DATABASE
   DBSG:
     Type: AWS::RDS::DBSubnetGroup
     Properties:
@@ -171,6 +221,14 @@ Resources:
           FromPort: 3306
           ToPort: 3306
           CidrIp: 10.0.1.0/24
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 10.0.2.0/24
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          CidrIp: 10.0.3.0/24
 
   RDSInstance:
     Type: AWS::RDS::DBInstance
@@ -183,22 +241,8 @@ Resources:
       DBSubnetGroupName: !Ref DBSG
       VPCSecurityGroups:
         - !GetAtt RDSSG.GroupId
-  #security
-  CustomerServiceSecurityGroup:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-      GroupDescription: Allow HTTP and SSH
-      VpcId: !Ref PubVPC
-      SecurityGroupIngress:
-        - IpProtocol: tcp
-          FromPort: 80
-          ToPort: 80
-          CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: 0.0.0.0/0
 
+  #security
   BastionSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -217,8 +261,8 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-  #EC2
 
+  #EC2
   BastionInstance:
     Type: AWS::EC2::Instance
     Properties:
@@ -249,3 +293,9 @@ Outputs:
   PublicSubnetPubVPC3:
     Description: Subnet 3
     Value: !Ref PublicSubnetPubVPC3
+  BucketName:
+    Description: The S3 Bucket Name
+    Value: !Ref FileServerBucket
+  BucketURL:
+    Description: The URL of the S3 Bucket
+    Value: !Sub "https://${FileServerBucket}.s3.amazonaws.com/"

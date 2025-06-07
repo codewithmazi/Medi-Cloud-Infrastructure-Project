@@ -1,20 +1,22 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: MediEquipStack
+Description: test user data
 
 Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
     Description: The public VPC Id
-  PublicSubnetPubVPC: 
+  PublicSubnetPubVPC:
     Type: String
-    Description:  public subnet 1
-  PublicSubnetPubVPC2: 
+    Description: public subnet 1
+  PublicSubnetPubVPC2:
     Type: String
-    Description:  public subnet 2
-  PublicSubnetPubVPC3: 
+    Description: public subnet 2
+  PublicSubnetPubVPC3:
     Type: String
-    Description:  public subnet 3
-
+    Description: public subnet 3
+  RDSEndpoint:
+    Type: String
+    Description: Database Endpoint
 
 Resources:
   #security
@@ -38,28 +40,42 @@ Resources:
           CidrIp: 0.0.0.0/0
   #EC2
 
-  myLaunchTemplate:
+  webLaunchTemplate:
     Type: AWS::AutoScaling::LaunchConfiguration
     Properties:
       ImageId: ami-0953476d60561c955
       InstanceType: t2.micro
-      UserData: !Base64 |
-          #!/bin/bash
-          yum update -y
-          yum install -y httpd php
-          systemctl start httpd
-          systemctl enable httpd
-          echo "<?php phpinfo(); ?>" > /var/www/html/index.php
+      KeyName: vockey
+      UserData: 
+       Fn::Base64: !Sub |
+        #!/bin/bash
+        dnf update -y
+        dnf install -y httpd php php-mysqlnd
+        systemctl start httpd
+        systemctl enable httpd
+        cat <<EOF > /var/www/html/index.php
+        <?php
+        \$host = '${RDSEndpoint}';
+        \$user = 'admin';
+        \$pass = '404AZ-IN';
+
+        try {
+            \$pdo = new PDO("mysql:host=\$host", \$user, \$pass);
+            echo "Connected to MySQL server successfully via PDO.";
+        } catch (PDOException \$e) {
+            echo "<p> Connection failed: " . htmlspecialchars(\$e->getMessage()) . "</p>";
+        }
+        ?>
       SecurityGroups:
         - !Ref CustomerServiceSecurityGroup
 
-  myASG:
+  webASG:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
       VPCZoneIdentifier:
         - !Ref PublicSubnetPubVPC
         - !Ref PublicSubnetPubVPC2
         - !Ref PublicSubnetPubVPC3
-      LaunchConfigurationName: !Ref myLaunchTemplate
+      LaunchConfigurationName: !Ref webLaunchTemplate
       MaxSize: '3'
       MinSize: '1'
