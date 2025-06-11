@@ -21,12 +21,13 @@ jobs:
         - name: List Files
           run: ls -R
           working-directory: ${{ github.workspace }}
-        - name: Configure Database Credentials
-          uses: aws-actions/aws-cloudformation-github-deploy@v1
-          with: 
-            name: MediEquipStack
-            template: MediEquipStack.yaml
-            parameter-overrides: "DBPassword=${{ secrets.DB_PASSWORD }}"
+        - name: Deploy Main Stack
+          run: | 
+            aws cloudformation deploy \
+              --stack-name MediEquipStack \
+              --template-file MediEquipStack.yaml \
+              --capabilities CAPABILITY_NAMED_IAM \
+              --parameter-overrides DBPassword=${{secrets.DB_PASSWORD}}
         - name: Deploy Web Server Stack
           run: |
             aws cloudformation deploy \
@@ -39,4 +40,3 @@ jobs:
               PublicSubnetPubVPC2=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs [?OutputKey=='PublicSubnetPubVPC2'].OutputValue" --output text) \
               PublicSubnetPubVPC3=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs [?OutputKey=='PublicSubnetPubVPC3'].OutputValue" --output text) \
               RDSEndpoint=$(aws cloudformation describe-stacks --stack-name MediEquipStack --query "Stacks[0].Outputs[?OutputKey=='RDSEndpoint' ].OutputValue" -- output text)
-          working-directory: ${{ github.workspace }}
