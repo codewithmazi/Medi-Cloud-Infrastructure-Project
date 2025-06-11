@@ -80,11 +80,11 @@ Resources:
       GatewayId: !Ref InternetGateway
   PubPeeringRoute:
     Type: AWS::EC2::Route
-    DependsOn: VPCPeering
+    DependsOn: myTransitGateway
     Properties:
       RouteTableId: !Ref PublicRouteTablePubVPC
       DestinationCidrBlock: 192.168.0.0/16
-      VpcPeeringConnectionId: !Ref VPCPeering
+      TransitGatewayId: !Ref myTransitGateway
 
   #PUBLIC ROUTE ASSOCIATIONS
   PublicRouteTableAssociation:
@@ -147,11 +147,11 @@ Resources:
       VpcId: !Ref PriVPC
   PriPeeringRoute:
     Type: AWS::EC2::Route
-    DependsOn: VPCPeering
+    DependsOn: myTransitGateway
     Properties:
       RouteTableId: !Ref PrivateRouteTablePriVPC
       DestinationCidrBlock: 10.0.0.0/16
-      VpcPeeringConnectionId: !Ref VPCPeering
+      TransitGatewayId: !Ref myTransitGateway
 
   #PRIVATE ROUTE ASSOCIATIONS
   PrivateRouteTableAssociation:
@@ -165,15 +165,44 @@ Resources:
       SubnetId: !Ref PrivateSubnetPriVPC2
       RouteTableId: !Ref PrivateRouteTablePriVPC
 
-  # VPC PEERING
-  VPCPeering:
-    Type: AWS::EC2::VPCPeeringConnection
+  #Transit Gateway
+  myTransitGateway:
+    Type: "AWS::EC2::TransitGateway"
     Properties:
-      VpcId: !Ref PubVPC
-      PeerVpcId: !Ref PriVPC
+      Description: "Transit Gateway for VPCs"
+      AutoAcceptSharedAttachments: "disable"
+      DefaultRouteTableAssociation: "enable"
+      DnsSupport: "enable"
+      VpnEcmpSupport: "enable"
       Tags:
-        - Key: Name
-          Value: MyVPC-Peer
+      - Key: Name
+        Value: My-Transit-Gateway
+
+  PubAttachment:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      SubnetIds:
+        - !Ref PublicSubnetPubVPC
+        - !Ref PublicSubnetPubVPC2
+        - !Ref PublicSubnetPubVPC3
+      Tags: 
+      - Key: Name
+        Value: Pub-Attachment
+      TransitGatewayId: !Ref myTransitGateway
+      VpcId: !Ref PubVPC
+
+  PriAttachment:
+    Type: AWS::EC2::TransitGatewayAttachment
+    Properties:
+      SubnetIds:
+        - !Ref PrivateSubnetPriVPC
+        - !Ref PrivateSubnetPriVPC2
+      Tags: 
+      - Key: Name
+        Value: Pri-Attachment
+      TransitGatewayId: !Ref myTransitGateway
+      VpcId: !Ref PriVPC
+
 
   #FILE SERVER [S3]
   FileServerBucket:
@@ -284,8 +313,6 @@ Outputs:
     Value: !GetAtt BastionInstance.PublicIp
   RDSEndpoint:
     Value: !GetAtt RDSInstance.Endpoint.Address
-  VpcPeeringConnectionId:
-    Value: !Ref VPCPeering
   VpcId:
     Description: Public VPC Id
     Value: !Ref PubVPC
@@ -304,3 +331,9 @@ Outputs:
   BucketURL:
     Description: The URL of the S3 Bucket
     Value: !Sub "https://${FileServerBucket}.s3.amazonaws.com/"
+  myTransitGatewayId:
+    Value: !Ref myTransitGateway
+  PubAttachmentId:
+    Value: !Ref PubAttachment
+  PriAttachmentId:
+    Value: !Ref PriAttachment
