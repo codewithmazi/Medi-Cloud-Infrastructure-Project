@@ -180,6 +180,32 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: medequip-501-file-server
+      PublicAccessBlockConfiguration:
+         BlockPublicAcls: false
+         BlockPublicPolicy: false
+         IgnorePublicAcls: false
+         RestrictPublicBuckets: false
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+     Bucket: !Ref FileServerBucket
+     PolicyDocument:
+      Version: "2012-10-17"
+      Statement:
+        - Sid: AllowListing
+          Effect: Allow
+          Principal: "*"
+          Action:
+            - s3:ListBucket
+          Resource: !GetAtt FileServerBucket.Arn
+
+        - Sid: AllowReadAccess
+          Effect: Allow
+          Principal: "*"
+          Action:
+            - s3:GetObject
+          Resource: !Sub "${FileServerBucket.Arn}/*"
+
 
   #DATABASE
   DBSG:
