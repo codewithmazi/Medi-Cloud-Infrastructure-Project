@@ -80,7 +80,7 @@ Resources:
       GatewayId: !Ref InternetGateway
   PubPeeringRoute:
     Type: AWS::EC2::Route
-    DependsOn: myTransitGateway
+    DependsOn: PubAttachment
     Properties:
       RouteTableId: !Ref PublicRouteTablePubVPC
       DestinationCidrBlock: 192.168.0.0/16
@@ -147,7 +147,7 @@ Resources:
       VpcId: !Ref PriVPC
   PriPeeringRoute:
     Type: AWS::EC2::Route
-    DependsOn: myTransitGateway
+    DependsOn: PriAttachment
     Properties:
       RouteTableId: !Ref PrivateRouteTablePriVPC
       DestinationCidrBlock: 10.0.0.0/16
